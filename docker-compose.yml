@@ -1,0 +1,86 @@
+version: '3'
+
+services:
+  teslamate:
+    image: teslamate/teslamate:1.27
+    restart: unless-stopped
+    environment:
+      ENCRYPTION_KEY: teslamatekey
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: teslamate
+      DATABASE_PASSWORD: teslamatepass
+      DATABASE_NAME: teslamate
+      MQTT_HOST: mosquitto
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./import:/opt/app/import
+    ports:
+      - '4000:4000'
+    cap_drop:
+      - all
+
+  postgres:
+    image: postgres:14.1-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespass
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./postgres-initdb.d:/docker-entrypoint-initdb.d:ro
+      - ./postgres:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    command: mosquitto -c /mosquitto-no-auth.conf
+    volumes:
+      - ./mosquitto_conf:/mosquitto/config
+      - ./mosquitto:/mosquitto/data
+    ports:
+      - '1883:1883'
+
+  grafana:
+    image: grafana/grafana:8.5.6
+    restart: unless-stopped
+    environment:
+      GF_INSTALL_PLUGINS: natel-plotly-panel 0.0.7,pr0ps-trackmap-panel 2.1.2,https://github.com/panodata/panodata-map-panel/releases/download/0.16.0/panodata-map-panel-0.16.0.zip;grafana-worldmap-panel-ng
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/home.json
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: natel-plotly-panel,panodata-map-panel,pr0ps-trackmap-panel
+      GF_SECURITY_ADMIN_PASSWORD: adminpass
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_DISABLE_GRAVATAR: 'true'
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: teslamate
+      DATABASE_PASSWORD: teslamatepass
+      DATABASE_NAME: teslamate
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./grafana_conf/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana:/var/lib/grafana
+    ports:
+      - '3000:3000'
+
+  #prometheus:
+  #  image: prom/prometheus:v2.34.0
+  #  restart: unless-stopped
+  #  command: ['--config.file=/etc/prometheus/prometheus.yml', '--storage.tsdb.path=/prometheus', '--storage.tsdb.retention.time=90d']
+  #  volumes:
+  #    - /etc/localtime:/etc/localtime:ro
+  #    - ./prometheus_conf:/etc/prometheus:ro
+  #    - ./prometheus:/prometheus
+  #  ports:
+  #    - '9090:9090'
+
+  #postgres-exporter:
+  #  image: quay.io/prometheuscommunity/postgres-exporter
+  #  restart: unless-stopped
+  #  environment:
+  #    DATA_SOURCE_NAME: 'postgresql://postgres:postgrespass@postgres:5432/postgres?sslmode=disable'
+  #  ports:
+  #    - '9187:9187'

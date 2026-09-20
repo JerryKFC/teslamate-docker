@@ -1,0 +1,25 @@
+apiVersion: 1
+
+datasources:
+  - name: TeslaMate
+    type: postgres
+    access: proxy
+    url: $DATABASE_HOST:$DATABASE_PORT
+    user: $DATABASE_USER
+    database: $DATABASE_NAME
+    basicAuth: false
+    withCredentials: false
+    secureJsonData:
+      password: $DATABASE_PASSWORD
+    jsonData:
+      postgresVersion: 1000
+      sslmode: disable
+    version: 1
+    editable: false
+
+  #- name: Prometheus
+  #  type: prometheus
+  #  access: proxy
+  #  url: $PROMETHEUS_URL
+  #  version: 1
+  #  editable: false
